@@ -1,0 +1,108 @@
+-- Создание таблицы для заметок
+CREATE TABLE public.notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  parent_id UUID REFERENCES public.notes(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  code TEXT,
+  comment TEXT,
+  language VARCHAR(50),
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- Включение защиты на уровне строк (Row Level Security)
+ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
+
+-- Политика, разрешающая всем пользователям читать все заметки.
+-- Для простоты мы не используем аутентификацию.
+CREATE POLICY "Public Read" ON public.notes
+  FOR SELECT USING (true);
+
+-- Политика, разрешающая всем пользователям создавать, обновлять и удалять заметки.
+CREATE POLICY "Public Write" ON public.notes
+  FOR ALL USING (true)
+  WITH CHECK (true);
+
+
+
+
+-- Отключаем старые, небезопасные политики
+-- (Игнорируйте ошибку, если этих политик уже нет)
+DROP POLICY IF EXISTS "Public Read Access" ON public.notes;
+DROP POLICY IF EXISTS "Public Write Access" ON public.notes;
+
+-- Добавляем колонку для связи заметки с пользователем
+ALTER TABLE public.notes ADD COLUMN user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+
+-- Устанавливаем, чтобы user_id автоматически заполнялся ID текущего пользователя при создании заметки
+ALTER TABLE public.notes ALTER COLUMN user_id SET DEFAULT auth.uid();
+
+-- Создаем индекс для ускорения выборок по пользователю
+CREATE INDEX IF NOT EXISTS idx_notes_user_id ON public.notes (user_id);
+
+-- Включаем защиту на уровне строк (Row Level Security), если она еще не включена
+ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
+
+-- НОВЫЕ ПОЛИТИКИ БЕЗОПАСНОСТИ
+
+-- 1. Пользователи могут видеть только свои заметки.
+CREATE POLICY "Users can view their own notes."
+  ON public.notes FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- 2. Пользователи могут создавать заметки для самих себя.
+CREATE POLICY "Users can insert their own notes."
+  ON public.notes FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- 3. Пользователи могут обновлять только свои заметки.
+CREATE POLICY "Users can update their own notes."
+  ON public.notes FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- 4. Пользователи могут удалять только свои заметки.
+CREATE POLICY "Users can delete their own notes."
+  ON public.notes FOR DELETE
+  USING (auth.uid() = user_id);
+
+
+
+
+-- 1. ОТКЛЮЧАЕМ СТАРЫЕ, НЕБЕЗОПАСНЫЕ ПОЛИТИКИ ДОСТУПА
+-- (Игнорируйте ошибку, если этих политик уже не существует)
+drop policy IF exists "Public Read Access" on public.notes;
+
+drop policy IF exists "Public Write Access" on public.notes;
+
+-- 2. ДОБАВЛЯЕМ КОЛОНКУ ДЛЯ СВЯЗИ ЗАМЕТКИ С ПОЛЬЗОВАТЕЛЕМ
+-- Это добавит колонку user_id, которая будет ссылаться на ID пользователя в системе аутентификации.
+alter table public.notes
+add column user_id UUID references auth.users (id) on delete CASCADE;
+
+-- 3. УСТАНАВЛИВАЕМ АВТОМАТИЧЕСКОЕ ЗАПОЛНЕНИЕ USER_ID
+-- Теперь при создании новой заметки user_id будет автоматически устанавливаться в ID текущего пользователя.
+alter table public.notes
+alter column user_id
+set default auth.uid ();
+
+-- 4. ВКЛЮЧАЕМ ЗАЩИТУ НА УРОВНЕ СТРОК (ROW LEVEL SECURITY)
+-- Это главный механизм, который будет фильтровать данные для каждого пользователя.
+alter table public.notes ENABLE row LEVEL SECURITY;
+
+-- 5. СОЗДАЕМ НОВЫЕ ПОЛИТИКИ БЕЗОПАСНОСТИ
+-- Политика для ЧТЕНИЯ: Пользователи могут видеть только свои заметки.
+create policy "Users can view their own notes." on public.notes for
+select
+  using (auth.uid () = user_id);
+
+-- Политика для СОЗДАНИЯ: Пользователи могут создавать заметки только от своего имени.
+create policy "Users can insert their own notes." on public.notes for INSERT
+with
+  check (auth.uid () = user_id);
+
+-- Политика для ОБНОВЛЕНИЯ: Пользователи могут обновлять только свои заметки.
+create policy "Users can update their own notes." on public.notes
+for update
+  using (auth.uid () = user_id);
+
+-- Политика для УДАЛЕНИЯ: Пользователи могут удалять только свои заметки.
+create policy "Users can delete their own notes." on public.notes for DELETE using (auth.uid () = user_id);

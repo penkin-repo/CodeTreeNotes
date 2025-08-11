@@ -1,0 +1,5 @@
+{
+  "name": "CodeTree Notes",
+  "description": "A hierarchical note-taking application designed to store code snippets and comments in a tree-like structure. Users can create, edit, copy, and delete notes. The application is architected to be easily integrated with a Supabase backend.",
+  "requestFramePermissions": []
+}
