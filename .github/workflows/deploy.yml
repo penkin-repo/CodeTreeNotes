@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # или master, если у тебя так называется ветка
+      - main  # или master, если так называется ветка
 
 permissions:
   contents: read
@@ -20,10 +20,28 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 18
 
       - name: Install dependencies
         run: npm install
+
+      - name: Create supabase/client.ts
+        run: |
+          mkdir -p supabase
+          cat > supabase/client.ts << 'EOF'
+          import { createClient } from '@supabase/supabase-js'
+          import type { Database } from './database.types';
+
+          const supabaseUrl = '${{ secrets.VITE_SUPABASE_URL }}';
+          const supabaseAnonKey = '${{ secrets.VITE_SUPABASE_KEY }}';
+
+          if (supabaseUrl === '' || supabaseAnonKey === '') {
+            console.warn(`Supabase credentials are not configured. The app will not connect to the database.
+          Please update your GitHub Secrets: VITE_SUPABASE_URL and VITE_SUPABASE_KEY`);
+          }
+
+          export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+          EOF
 
       - name: Build project
         run: npm run build
@@ -31,7 +49,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist  # тут указываем папку с готовым сайтом
+          path: dist  # папка с готовым сайтом
 
   deploy:
     needs: build
