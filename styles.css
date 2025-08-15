@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  min-width: 700px;
+}
+
 /* For custom scrollbars to match the dark theme */
 ::-webkit-scrollbar {
   width: 8px;

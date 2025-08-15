@@ -10,30 +10,30 @@ import { supabase } from './supabase/client';
 import type { Session } from '@supabase/supabase-js';
 import { Auth } from './components/Auth';
 
-const FullScreenLoader = ({ message = "Loading..." } : { message?: string}) => (
-    <div className="flex items-center justify-center h-screen bg-slate-900">
-        <div className="flex flex-col items-center gap-4">
-            <SpinnerIcon className="w-12 h-12 animate-spin text-cyan-500" />
-            <p className="text-slate-400">{message}</p>
-        </div>
+const FullScreenLoader = ({ message = "Loading..." }: { message?: string }) => (
+  <div className="flex items-center justify-center h-screen bg-slate-900">
+    <div className="flex flex-col items-center gap-4">
+      <SpinnerIcon className="w-12 h-12 animate-spin text-cyan-500" />
+      <p className="text-slate-400">{message}</p>
     </div>
+  </div>
 );
 
 const ErrorDisplay = ({ error, onRetry }: { error: Error; onRetry: () => void }) => (
-    <div className="flex items-center justify-center h-screen bg-slate-900">
-        <div className="text-center p-8 bg-slate-800 rounded-lg shadow-xl border border-red-500/30">
-            <h2 className="text-2xl font-semibold text-red-400">Connection Error</h2>
-            <p className="mt-2 text-slate-300">Could not fetch notes from the database.</p>
-            <p className="mt-1 text-xs text-slate-500 max-w-md">{error.message}</p>
-            <p className="mt-4 text-slate-400">Please check your Supabase URL, Key, and RLS policies from <code className="bg-slate-900 px-1 py-0.5 rounded text-cyan-400 text-xs">schema.sql</code>.</p>
-            <button
-                onClick={onRetry}
-                className="mt-6 px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 transition-colors"
-            >
-                Retry Connection
-            </button>
-        </div>
+  <div className="flex items-center justify-center h-screen bg-slate-900">
+    <div className="text-center p-8 bg-slate-800 rounded-lg shadow-xl border border-red-500/30">
+      <h2 className="text-2xl font-semibold text-red-400">Connection Error</h2>
+      <p className="mt-2 text-slate-300">Could not fetch notes from the database.</p>
+      <p className="mt-1 text-xs text-slate-500 max-w-md">{error.message}</p>
+      <p className="mt-4 text-slate-400">Please check your Supabase URL, Key, and RLS policies from <code className="bg-slate-900 px-1 py-0.5 rounded text-cyan-400 text-xs">schema.sql</code>.</p>
+      <button
+        onClick={onRetry}
+        className="mt-6 px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 transition-colors"
+      >
+        Retry Connection
+      </button>
     </div>
+  </div>
 );
 
 function MainApp({ session }: { session: Session }) {
@@ -42,7 +42,7 @@ function MainApp({ session }: { session: Session }) {
   const [noteToDelete, setNoteToDelete] = useState<NoteData | null>(null);
 
   const selectedNote = useMemo(() => getNoteById(selectedNoteId), [selectedNoteId, getNoteById]);
-  
+
   // When a note is deleted, if it was the selected one, deselect it.
   useEffect(() => {
     if (selectedNoteId && !getNoteById(selectedNoteId)) {
@@ -64,7 +64,7 @@ function MainApp({ session }: { session: Session }) {
       setSelectedNoteId(newId);
     }
   };
-  
+
   const handleAddChildNote = useCallback(async (parentId: string) => {
     const newId = await addNote(parentId);
     if (newId) {
@@ -89,7 +89,7 @@ function MainApp({ session }: { session: Session }) {
   const handleCopyNote = useCallback(async (id: string) => {
     const newId = await copyNote(id);
     if (newId) {
-        setSelectedNoteId(newId);
+      setSelectedNoteId(newId);
     }
   }, [copyNote]);
 
@@ -99,17 +99,17 @@ function MainApp({ session }: { session: Session }) {
 
   // Initial loading state
   if (isLoading && !tree.length && !error) {
-      return <FullScreenLoader message="Loading your notes..." />;
+    return <FullScreenLoader message="Loading your notes..." />;
   }
 
   // Error state
   if (error) {
-      return <ErrorDisplay error={error} onRetry={fetchNotes} />;
+    return <ErrorDisplay error={error} onRetry={fetchNotes} />;
   }
 
   return (
     <div className="flex h-screen font-sans">
-      <aside className="w-1/3 max-w-sm min-w-[300px] bg-slate-800 flex flex-col border-r border-slate-700">
+      <aside className="w-1/3 max-w-sm min-w-[200px] md:min-w-[300px] bg-slate-800 flex flex-col border-r border-slate-700">
         <header className="p-4 border-b border-slate-700 flex justify-between items-center shrink-0">
           <h1 className="text-xl font-bold text-white">CodeTree Notes</h1>
           <button
@@ -118,16 +118,16 @@ function MainApp({ session }: { session: Session }) {
             aria-label="Add new root note"
           >
             <PlusIcon />
-            New Note
+            <span className="hidden md:inline">New Note</span>
           </button>
         </header>
         <div className="flex-grow overflow-y-auto relative p-2">
-           {isLoading && tree.length > 0 && (
+          {isLoading && tree.length > 0 && (
             <div className="absolute top-2 right-4 text-xs text-slate-400 flex items-center gap-2 z-10">
               <SpinnerIcon className="h-4 w-4 animate-spin" />
               <span>Syncing...</span>
             </div>
-           )}
+          )}
           <TreeView
             nodes={tree}
             selectedNoteId={selectedNoteId}
@@ -138,15 +138,15 @@ function MainApp({ session }: { session: Session }) {
           />
         </div>
         <footer className="p-2 border-t border-slate-700">
-            <div className="text-sm text-slate-400 truncate px-2 mb-2">
-                Signed in as: <strong className="text-slate-300">{session.user.email}</strong>
-            </div>
-            <button
-                onClick={handleLogout}
-                className="w-full text-center px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-600 transition-colors text-sm"
-            >
-                Logout
-            </button>
+          <div className="text-sm text-slate-400 truncate px-2 mb-2">
+            Signed in as: <strong className="text-slate-300">{session.user.email}</strong>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full text-center px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-600 transition-colors text-sm"
+          >
+            Logout
+          </button>
         </footer>
       </aside>
 
@@ -189,12 +189,12 @@ export default function App() {
   }, []);
 
   if (loading) {
-      return <FullScreenLoader message="Initializing..."/>;
+    return <FullScreenLoader message="Initializing..." />;
   }
 
   if (!session) {
     return <Auth />;
   }
-  
+
   return <MainApp session={session} />;
 }

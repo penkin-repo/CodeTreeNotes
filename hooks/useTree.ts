@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { Note, NoteData } from '../types';
 import { supabase } from '../supabase/client';
@@ -18,12 +17,21 @@ export const useTree = () => {
         setIsLoading(true);
         setError(null);
         try {
+            // Получаем текущего пользователя
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                throw new Error('User not authenticated');
+            }
+
             const { data, error } = await supabase
                 .from('notes')
                 .select('*')
+                .eq('user_id', user.id)
                 .order('created_at', { ascending: true });
 
             if (error) throw error;
+            console.log(data.map(fromSupabase))
             setNotes(data.map(fromSupabase));
         } catch (err: any) {
             setError(err);
@@ -60,7 +68,16 @@ export const useTree = () => {
         return notesMap.get(id);
     }, [notesMap]);
 
+
+    // Добавление новой заметки
     const addNote = useCallback(async (parentId: string | null) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+            setError(new Error('User not authenticated'));
+            return null;
+        }
+        
         const { data, error } = await supabase
             .from('notes')
             .insert({
@@ -69,16 +86,17 @@ export const useTree = () => {
                 code: '',
                 comment: '',
                 language: 'javascript',
+                user_id: user.id,
             })
             .select()
             .single();
-        
+
         if (error) {
             console.error("Error adding note:", error);
             setError(error);
             return null;
         }
-        
+
         if (data) {
             const newNote = fromSupabase(data);
             setNotes(prev => [...prev, newNote]);
@@ -105,7 +123,7 @@ export const useTree = () => {
             setNotes(prev => prev.map(note => note.id === id ? { ...note, ...updatedNote } : note));
         }
     }, []);
-  
+
     const deleteNote = useCallback(async (noteId: string) => {
         const idsToDelete = new Set<string>();
         const queue = [noteId];
@@ -121,12 +139,12 @@ export const useTree = () => {
                 }
             });
         }
-        
+
         const { error } = await supabase
             .from('notes')
             .delete()
             .in('id', Array.from(idsToDelete));
-        
+
         if (error) {
             console.error("Error deleting note(s):", error);
             setError(error);
@@ -135,7 +153,7 @@ export const useTree = () => {
 
         setNotes(prev => prev.filter(note => !idsToDelete.has(note.id)));
     }, [notes]);
-  
+
     const copyNote = useCallback(async (noteId: string) => {
         const notesToInsert: NoteData[] = [];
 
@@ -154,13 +172,13 @@ export const useTree = () => {
                 })
                 .select()
                 .single();
-            
+
             if (error || !newNoteData) {
                 console.error("Error during recursive copy:", error);
                 setError(error);
                 return null;
             }
-            
+
             const newNote = fromSupabase(newNoteData);
             notesToInsert.push(newNote);
 
@@ -173,10 +191,10 @@ export const useTree = () => {
         };
 
         const rootNoteToCopy = notesMap.get(noteId);
-        if(rootNoteToCopy) {
+        if (rootNoteToCopy) {
             const newRootId = await recursiveCopy(noteId, rootNoteToCopy.parentId);
             if (newRootId) {
-                setNotes(prev => [...prev, ...notesToInsert].sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
+                setNotes(prev => [...prev, ...notesToInsert].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
             }
             return newRootId;
         }

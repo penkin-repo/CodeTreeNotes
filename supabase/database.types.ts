@@ -18,6 +18,7 @@ export interface Database {
           comment: string
           language: string
           created_at: string
+          user_id?: string
         }
         Insert: {
           id?: string
@@ -27,7 +28,8 @@ export interface Database {
           comment: string
           language: string
           created_at?: string
-        }
+          user_id?: string
+          }
         Update: {
           id?: string
           parent_id?: string | null
@@ -36,6 +38,7 @@ export interface Database {
           comment?: string
           language?: string
           created_at?: string
+          user_id?: string
         }
         Relationships: [
           {
